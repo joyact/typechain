@@ -1,7 +1,8 @@
 {
   type CoffeeCup = {
     shots: number;
-    hasMilk: boolean;
+    hasMilk?: boolean;
+    hasSugar?: boolean;
   };
 
   interface BasicOption {
@@ -85,9 +86,40 @@
     }
   }
 
-  const coffee = new CoffeeMachine(50);
-  const latte = new CaffeLatteMachine(50, 'ABC');
+  class SweetCoffeeMachine extends CoffeeMachine {
+    private addSugar() {
+      console.log('>> Adding sugar');
+    }
 
-  coffee.makeCoffee(1);
-  latte.makeCoffee(2);
+    makeCoffee(shots: number) {
+      const coffee = super.makeCoffee(shots);
+      this.addSugar();
+      return {
+        ...coffee,
+        hasSugar: true,
+      };
+    }
+  }
+
+  /*
+   * 다형성 : 하나의 클래스로 여러가지 구현가능
+    const coffee = new CoffeeMachine(50);
+    const latte = new CaffeLatteMachine(50, 'ABC');
+    const sweetCoffee = new SweetCoffeeMachine(50);
+
+    coffee.makeCoffee(1);
+    latte.makeCoffee(2);
+    sweetCoffee.makeCoffee(3);
+  */
+
+  const machines: BasicOption[] = [
+    new CoffeeMachine(16),
+    new CaffeLatteMachine(16, '1'),
+    new SweetCoffeeMachine(16),
+  ];
+
+  machines.forEach((machine) => {
+    console.log('--------------------');
+    machine.makeCoffee(1);
+  });
 }
