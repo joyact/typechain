@@ -9,16 +9,25 @@
     makeCoffee(shots: number): CoffeeCup;
   }
 
+  // de-coupling with interface
+  interface iMilkFrother {
+    makeMilk(cup: CoffeeCup): CoffeeCup;
+  }
+
+  interface iSugarProvider {
+    addSugar(cup: CoffeeCup): CoffeeCup;
+  }
+
   class CoffeeMachine implements BasicOption {
     private static BEANS_GRAM_PER_SHOT: number = 7;
     private coffeeBeans: number = 0;
 
-    constructor(coffeeBeans) {
+    constructor(
+      coffeeBeans,
+      private milk: iMilkFrother,
+      private sugar: iSugarProvider
+    ) {
       this.coffeeBeans = coffeeBeans;
-    }
-
-    static makeMachine(coffeeBeans: number): CoffeeMachine {
-      return new CoffeeMachine(coffeeBeans);
     }
 
     private grindBeans(shots) {
@@ -57,21 +66,14 @@
     makeCoffee(shots: number): CoffeeCup {
       this.grindBeans(shots);
       this.preheat();
-      return this.extract(shots);
+      const coffee = this.extract(shots);
+      const addedSugar = this.sugar.addSugar(coffee);
+      return this.milk.makeMilk(addedSugar);
     }
 
     clean() {
       console.log('>> Cleaning...');
     }
-  }
-
-  // de-coupling with interface
-  interface iMilkFrother {
-    makeMilk(cup: CoffeeCup): CoffeeCup;
-  }
-
-  interface iSugarProvider {
-    addSugar(cup: CoffeeCup): CoffeeCup;
   }
 
   // 우유 제조기
@@ -116,6 +118,13 @@
     }
   }
 
+  // 우유 x
+  class NoMilk implements iMilkFrother {
+    makeMilk(cup: CoffeeCup): CoffeeCup {
+      return cup;
+    }
+  }
+
   // 설탕 제조기
   class CandySugarMixer implements iSugarProvider {
     private getSugar(): void {
@@ -130,7 +139,7 @@
     }
   }
 
-  // 설탕 제조기
+  // 흑설탕 제조기
   class BlackSugarMixer implements iSugarProvider {
     private getSugar(): void {
       console.log('>> Getting some black sugar');
@@ -144,46 +153,10 @@
     }
   }
 
-  // 우유 추가
-  class CaffeLatteMachine extends CoffeeMachine {
-    constructor(
-      beans: number,
-      public serialNumber: string,
-      private milk: iMilkFrother
-    ) {
-      super(beans); // 자식 클래스에서 constructor 만들땐 반드시 부모 클래스의 데이터도 함께 적용
-    }
-    makeCoffee(shots: number): CoffeeCup {
-      const coffee = super.makeCoffee(shots); // 부모 클래스에서 함수 호출
-      return this.milk.makeMilk(coffee);
-    }
-  }
-
-  // 설탕 추가
-  class SweetCoffeeMachine extends CoffeeMachine {
-    constructor(beans: number, private sugar: iSugarProvider) {
-      super(beans);
-    }
-    makeCoffee(shots: number): CoffeeCup {
-      const coffee = super.makeCoffee(shots);
-      return this.sugar.addSugar(coffee);
-    }
-  }
-
-  // 우유 + 설탕 추가
-  class SweetCaffeLatteMachine extends CoffeeMachine {
-    constructor(
-      beans: number,
-      private milk: iMilkFrother,
-      private sugar: iSugarProvider
-    ) {
-      super(beans);
-    }
-
-    makeCoffee(shots: number): CoffeeCup {
-      const coffee = super.makeCoffee(shots);
-      const sugarAdded = this.sugar.addSugar(coffee);
-      return this.milk.makeMilk(sugarAdded);
+  // 설탕 x
+  class NoSugar implements iSugarProvider {
+    addSugar(cup: CoffeeCup): CoffeeCup {
+      return cup;
     }
   }
 
@@ -195,35 +168,37 @@
   const cheapMilkMaker = new CheapMilkSteamer();
   const fancyMilkMaker = new FancyMilkSteamer();
   const coldMilkMaker = new ColdMilkSteamer();
+  const noMilk = new NoMilk();
 
   // sugar 종류
   const candySugar = new CandySugarMixer();
   const blackSugar = new BlackSugarMixer();
+  const noSugar = new NoSugar();
 
   const machines = [
     {
       name: 'coffee',
-      work: new CoffeeMachine(16),
+      work: new CoffeeMachine(16, noMilk, noSugar),
     },
     {
       name: 'latte',
-      work: new CaffeLatteMachine(50, 'ABC', cheapMilkMaker),
+      work: new CoffeeMachine(50, cheapMilkMaker, noSugar),
     },
     {
       name: 'cold latte',
-      work: new CaffeLatteMachine(50, 'ABC', coldMilkMaker),
+      work: new CoffeeMachine(50, coldMilkMaker, noSugar),
     },
     {
       name: 'sweet black Coffee',
-      work: new SweetCoffeeMachine(50, blackSugar),
+      work: new CoffeeMachine(50, noMilk, blackSugar),
     },
     {
       name: 'sweetCoffee',
-      work: new SweetCoffeeMachine(50, candySugar),
+      work: new CoffeeMachine(50, noMilk, candySugar),
     },
     {
       name: 'sweetLatte',
-      work: new SweetCaffeLatteMachine(50, fancyMilkMaker, candySugar),
+      work: new CoffeeMachine(50, fancyMilkMaker, candySugar),
     },
   ];
 
