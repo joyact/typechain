@@ -65,61 +65,103 @@
     }
   }
 
-  // 클래스 '상속' 받아 새 클래스 만들기!
-  // <자식클래스명> extends <부모클래스명>
-  class CaffeLatteMachine extends CoffeeMachine {
-    constructor(beans: number, serialNumber: string) {
-      super(beans); // 자식 클래스에서 constructor 만들땐 반드시 부모 클래스의 데이터도 함께 적용
-    }
-
-    private steamMilk() {
+  // 우유 제조기
+  class CheapMilkSteamer {
+    private steamMilk(): void {
       console.log('>> Steaming some milk');
     }
-
-    makeCoffee(shots: number): CoffeeCup {
-      const coffee = super.makeCoffee(shots); // 부모 클래스에서 함수 호출
+    makeMilk(cup: CoffeeCup): CoffeeCup {
       this.steamMilk();
       return {
-        ...coffee,
+        ...cup,
         hasMilk: true,
       };
     }
   }
 
-  class SweetCoffeeMachine extends CoffeeMachine {
-    private addSugar() {
-      console.log('>> Adding sugar');
+  // 설탕 제조기
+  class CandySugarMixer {
+    private getSugar(): void {
+      console.log('>> Getting some sugar');
     }
-
-    makeCoffee(shots: number) {
-      const coffee = super.makeCoffee(shots);
-      this.addSugar();
+    addSugar(cup: CoffeeCup): CoffeeCup {
+      this.getSugar();
       return {
-        ...coffee,
+        ...cup,
         hasSugar: true,
       };
     }
   }
 
-  /*
-   * 다형성 : 하나의 클래스로 여러가지 구현가능
-    const coffee = new CoffeeMachine(50);
-    const latte = new CaffeLatteMachine(50, 'ABC');
-    const sweetCoffee = new SweetCoffeeMachine(50);
+  // 우유 추가
+  class CaffeLatteMachine extends CoffeeMachine {
+    constructor(
+      beans: number,
+      public serialNumber: string,
+      private milk: CheapMilkSteamer
+    ) {
+      super(beans); // 자식 클래스에서 constructor 만들땐 반드시 부모 클래스의 데이터도 함께 적용
+    }
+    makeCoffee(shots: number): CoffeeCup {
+      const coffee = super.makeCoffee(shots); // 부모 클래스에서 함수 호출
+      return this.milk.makeMilk(coffee);
+    }
+  }
 
-    coffee.makeCoffee(1);
-    latte.makeCoffee(2);
-    sweetCoffee.makeCoffee(3);
-  */
+  // 설탕 추가
+  class SweetCoffeeMachine extends CoffeeMachine {
+    constructor(beans: number, private sugar: CandySugarMixer) {
+      super(beans);
+    }
+    makeCoffee(shots: number): CoffeeCup {
+      const coffee = super.makeCoffee(shots);
+      return this.sugar.addSugar(coffee);
+    }
+  }
 
-  const machines: BasicOption[] = [
-    new CoffeeMachine(16),
-    new CaffeLatteMachine(16, '1'),
-    new SweetCoffeeMachine(16),
+  // 우유 + 설탕 추가
+  class SweetCaffeLatteMachine extends CoffeeMachine {
+    constructor(
+      beans: number,
+      private milk: CheapMilkSteamer,
+      private sugar: CandySugarMixer
+    ) {
+      super(beans);
+    }
+
+    makeCoffee(shots: number): CoffeeCup {
+      const coffee = super.makeCoffee(shots);
+      const sugarAdded = this.sugar.addSugar(coffee);
+      return this.milk.makeMilk(sugarAdded);
+    }
+  }
+
+  // 기능 별로 클래스를 만들어두고 필요한 곳에서 composition한다
+  const cheapMilkMaker = new CheapMilkSteamer();
+  const candySugar = new CandySugarMixer();
+
+  const machines = [
+    {
+      name: 'coffee',
+      work: new CoffeeMachine(16),
+    },
+    {
+      name: 'latte',
+      work: new CaffeLatteMachine(50, 'ABC', cheapMilkMaker),
+    },
+    {
+      name: 'sweetCoffee',
+      work: new SweetCoffeeMachine(50, candySugar),
+    },
+    {
+      name: 'sweetLatte',
+      work: new SweetCaffeLatteMachine(50, cheapMilkMaker, candySugar),
+    },
   ];
 
   machines.forEach((machine) => {
     console.log('--------------------');
-    machine.makeCoffee(1);
+    console.log(machine.name);
+    machine.work.makeCoffee(1);
   });
 }
